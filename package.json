@@ -1,0 +1,28 @@
+{
+    "name": "upsc-ai-platform",
+    "version": "1.0.0",
+    "private": true,
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
+    "scripts": {
+        "dev": "turbo run dev",
+        "build": "turbo run build",
+        "test": "turbo run test",
+        "lint": "turbo run lint",
+        "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+        "dev:web": "npm run dev --workspace=apps/web",
+        "dev:api": "cd apps/api && uvicorn app.main:app --reload --port 8000",
+        "db:migrate": "cd apps/api && alembic upgrade head",
+        "db:generate": "cd apps/api && alembic revision --autogenerate -m"
+    },
+    "devDependencies": {
+        "turbo": "^2.0.0",
+        "prettier": "^3.2.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "packageManager": "npm@10.0.0"
+}
