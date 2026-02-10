@@ -67,7 +67,9 @@ alembic/versions/*.pyc
 # Turbo
 .turbo/
 
-# Note: PDF files and study-materials are included in this repo
+# Study materials and PDFs (too large for GitHub)
+study-materials/
+*.pdf
 
 # Package manager locks (optional for monorepos)
 # Uncomment if you want to exclude lock files
