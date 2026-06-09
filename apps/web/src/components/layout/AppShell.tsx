@@ -12,7 +12,7 @@ import {
     X,
     Map,
     Brain,
-    Sparkles,
+    Bot,
     ArrowLeft
 } from 'lucide-react';
 import { useState } from 'react';

@@ -12,6 +12,10 @@ from app.core.config import settings
 from app.core.database import init_db, close_db
 from app.api.v1.router import api_router
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,19 +23,55 @@ async def lifespan(app: FastAPI):
     Application lifespan manager.
     Handles startup and shutdown events.
     """
-    # Startup
-    print(f"🚀 Starting {settings.APP_NAME} v{settings.APP_VERSION}")
-    print(f"📍 Environment: {settings.ENVIRONMENT}")
-    
-    # Initialize database tables (dev only - use Alembic in production)
+    # ── Startup ──────────────────────────────────────────────
+    logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION} [{settings.ENVIRONMENT}]")
+
+    # Initialize database tables
     if settings.is_development:
-        print("📦 Initializing database...")
-        await init_db()  # Auto-create tables in development
-    
+        logger.info("Initializing database...")
+        await init_db()
+
+    # ── Singleton RAG Pipeline ───────────────────────────────
+    # Create one EmbeddingPipeline for the entire app lifetime.
+    # All endpoints share this instance via app.state.embedding_pipeline.
+    # document_service also uses this SAME instance via embedding_registry
+    # so indexed documents are immediately queryable.
+    try:
+        from app.services.rag.embeddings import EmbeddingPipeline
+        from app.services import embedding_registry
+        from pathlib import Path
+
+        vector_path = settings.VECTOR_STORAGE_PATH
+        Path(vector_path).mkdir(parents=True, exist_ok=True)
+
+        embedding_pipeline = EmbeddingPipeline(
+            model_name=settings.NVIDIA_EMBED_MODEL,
+            storage_path=vector_path,
+            dimension=settings.NVIDIA_EMBED_DIM,
+        )
+        app.state.embedding_pipeline = embedding_pipeline
+
+        # Register as global singleton so document_service indexes into the same instance
+        embedding_registry.set_pipeline(embedding_pipeline)
+
+        logger.info(f"RAG embedding pipeline ready ({embedding_pipeline.vector_store.size} vectors in store)")
+    except Exception as e:
+        logger.error(f"Failed to initialize RAG pipeline (non-fatal): {e}")
+        app.state.embedding_pipeline = None
+
     yield
-    
-    # Shutdown
-    print("🔌 Shutting down...")
+
+    # ── Shutdown ─────────────────────────────────────────────
+    logger.info("Shutting down StudyABHI...")
+
+    # Save vector store before exit
+    try:
+        if app.state.embedding_pipeline is not None:
+            app.state.embedding_pipeline.save()
+            logger.info("Vector store saved to disk.")
+    except Exception as e:
+        logger.warning(f"Could not save vector store on shutdown: {e}")
+
     await close_db()
 
 
@@ -39,21 +79,17 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     description="""
-    ## 📚 UPSC AI Learning Platform API
-    
-    AI-powered learning platform for UPSC exam preparation.
-    
+    ## 📚 StudyABHI — UPSC AI Learning Platform
+
+    AI-powered study companion for UPSC exam preparation.
+
     ### Features
     - 🔐 JWT Authentication
-    - 👤 User Management
-    - 📝 Quiz Generation (Coming Soon)
-    - 🤖 RAG-based Q&A (Coming Soon)
-    - 📄 Content Summarization (Coming Soon)
-    
-    ### Supported Exams
-    - UPSC (Current)
-    - JEE (Planned)
-    - NEET (Planned)
+    - 📄 PDF Upload & Auto-indexing
+    - 🤖 RAG-based Q&A with Citations
+    - 🧠 AI Quiz Generation
+    - 📝 Document Summarization
+    - 🗺️ Personalized Study Roadmap
     """,
     version=settings.APP_VERSION,
     docs_url="/docs" if not settings.is_production else None,
@@ -97,10 +133,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Global exception handler for unhandled errors"""
-    # Log the error (in production, use proper logging)
-    print(f"❌ Unhandled error: {exc}")
-    
-    # Don't expose internal errors in production
+    logger.error(f"Unhandled error on {request.method} {request.url}: {exc}", exc_info=True)
+
     if settings.is_production:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -3,7 +3,7 @@ Document API Endpoints
 Upload, process, and manage documents (PDFs, etc.)
 """
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile, File, Form, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_document(
     background_tasks: BackgroundTasks,
+    request: Request,
     file: UploadFile = File(...),
     title: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
@@ -80,7 +81,7 @@ async def upload_document(
             background_tasks.add_task(
                 _process_document_background,
                 doc.id,
-                db,
+                request.app.state,
             )
         
         await db.commit()
@@ -207,6 +208,7 @@ async def get_document_chunks(
 async def trigger_processing(
     doc_id: str,
     background_tasks: BackgroundTasks,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -241,7 +243,7 @@ async def trigger_processing(
     background_tasks.add_task(
         _process_document_background,
         doc_id,
-        db,
+        request.app.state,
     )
     
     return ProcessingTriggerResponse(
@@ -281,17 +283,19 @@ async def delete_document(
 
 # ==================== Background Task ====================
 
-async def _process_document_background(doc_id: str, db: AsyncSession):
+async def _process_document_background(doc_id: str, app_state):
     """
-    Background task to process document.
-    
-    Note: In production, use a proper task queue (Celery, etc.)
+    Background task to process and embed a document.
+    Creates its own DB session — does NOT reuse the request-scoped session
+    that closes when the HTTP response is sent.
     """
-    try:
-        service = DocumentService(db)
-        await service.process_document(doc_id)
-        await db.commit()
-        logger.info(f"Background processing completed: {doc_id}")
-    except Exception as e:
-        logger.error(f"Background processing failed: {doc_id} - {e}")
-        await db.rollback()
+    from app.core.database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        try:
+            service = DocumentService(db)
+            await service.process_document(doc_id)
+            await db.commit()
+            logger.info(f"Background processing completed: {doc_id}")
+        except Exception as e:
+            logger.error(f"Background processing failed: {doc_id} - {e}")
+            await db.rollback()

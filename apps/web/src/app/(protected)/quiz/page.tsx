@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Brain, Clock, Trophy, ChevronRight, Loader2, Sparkles, FileText, Plus } from 'lucide-react';
+import { Brain, Clock, Trophy, ChevronRight, Loader2, Bot, FileText, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import api from '@/services/api';
 
@@ -88,7 +88,7 @@ export default function QuizIndexPage() {
                     <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-6">
                         <div className="flex items-start gap-4">
                             <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
-                                <Sparkles className="w-6 h-6 text-primary" />
+                                <Bot className="w-6 h-6 text-primary" />
                             </div>
                             <div className="flex-1">
                                 <h2 className="text-xl font-semibold">Generate a Custom Quiz</h2>

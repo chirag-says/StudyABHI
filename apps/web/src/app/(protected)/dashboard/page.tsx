@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import {
     BookOpen, Brain, Clock, Target, TrendingUp, Upload, MessageSquare,
-    FileText, ChevronRight, CheckCircle, Circle, Loader2, Sparkles
+    FileText, ChevronRight, CheckCircle, Circle, Loader2, Bot, Flame
 } from 'lucide-react';
 import api from '@/services/api';
 
@@ -75,25 +75,17 @@ export default function DashboardPage() {
             });
         } catch (error) {
             console.error('Failed to fetch dashboard:', error);
-            // Set mock data for demo
             setData({
                 stats: {
-                    study_hours_week: 24.5,
-                    quizzes_completed: 18,
-                    topics_covered: 42,
-                    total_topics: 120,
-                    avg_score: 78,
+                    study_hours_week: 0,
+                    quizzes_completed: 0,
+                    topics_covered: 0,
+                    total_topics: 100,
+                    avg_score: 0,
                 },
-                today_tasks: [
-                    { id: '1', title: 'Read Indian Polity Ch. 3', type: 'study', status: 'completed', estimated_minutes: 45 },
-                    { id: '2', title: 'Quiz: Fundamental Rights', type: 'quiz', status: 'pending', estimated_minutes: 20 },
-                    { id: '3', title: 'Review yesterday\'s notes', type: 'revision', status: 'pending', estimated_minutes: 15 },
-                ],
-                recent_documents: [
-                    { id: '1', filename: 'NCERT_Polity.pdf', created_at: new Date().toISOString(), status: 'completed' },
-                    { id: '2', filename: 'Economics_Notes.pdf', created_at: new Date(Date.now() - 86400000).toISOString(), status: 'completed' },
-                ],
-                streak_days: 5,
+                today_tasks: [],
+                recent_documents: [],
+                streak_days: 0,
             });
         } finally {
             setLoading(false);
@@ -149,7 +141,7 @@ export default function DashboardPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold">
-                        {getGreeting()}, {user?.full_name?.split(' ')[0] || 'Aspirant'}! 👋
+                        {getGreeting()}, {user?.full_name?.split(' ')[0] || 'Aspirant'}
                     </h1>
                     <p className="text-muted-foreground mt-1">
                         Here's your study progress for today
@@ -157,9 +149,9 @@ export default function DashboardPage() {
                 </div>
                 {data?.streak_days ? (
                     <div className="flex items-center gap-2 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 px-4 py-2 rounded-full">
-                        <span className="text-2xl">🔥</span>
+                        <Flame className="w-5 h-5 text-orange-500" />
                         <span className="font-bold text-orange-600 dark:text-orange-400">
-                            {data.streak_days} day streak!
+                            {data.streak_days} day streak
                         </span>
                     </div>
                 ) : null}
@@ -302,8 +294,8 @@ export default function DashboardPage() {
                                 </Link>
                             </Button>
                             <Button variant="outline" className="w-full justify-start" asChild>
-                                <Link href="/study">
-                                    <Sparkles className="w-4 h-4 mr-2" />
+                                <Link href="/chat">
+                                    <Bot className="w-4 h-4 mr-2" />
                                     Ask AI Tutor
                                 </Link>
                             </Button>

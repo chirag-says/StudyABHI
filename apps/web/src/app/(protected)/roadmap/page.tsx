@@ -136,6 +136,50 @@ export default function RoadmapPage() {
         }
     };
 
+    // Mark task as in_progress and navigate to the right feature
+    const handleTaskAction = async (task: Task) => {
+        // Mark as in_progress first
+        if (task.status === 'pending') {
+            await updateTaskStatus(task.id, 'in_progress');
+        }
+
+        // Route based on task type
+        switch (task.task_type) {
+            case 'quiz':
+                // Go to quiz, pre-select subject if available
+                router.push(task.subject_name
+                    ? `/quiz/new?subject=${encodeURIComponent(task.subject_name)}&topic=${encodeURIComponent(task.topic_name || '')}`
+                    : '/quiz/new'
+                );
+                break;
+
+            case 'study':
+            case 'revision':
+                // Go to study materials filtered by subject
+                router.push(task.subject_name
+                    ? `/materials?subject=${encodeURIComponent(task.subject_name)}`
+                    : '/materials'
+                );
+                break;
+
+            case 'current_affairs':
+                // Open AI Chat pre-loaded with a CA prompt
+                router.push(`/chat?q=${encodeURIComponent("What are today's most important current affairs for UPSC preparation?")}`);
+                break;
+
+            case 'practice':
+                // Open AI Chat for practice
+                router.push(task.topic_name
+                    ? `/chat?q=${encodeURIComponent(`Give me practice questions on ${task.topic_name} for UPSC`)}`
+                    : '/chat'
+                );
+                break;
+
+            default:
+                router.push('/chat');
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -217,7 +261,7 @@ export default function RoadmapPage() {
                                     <Flame className="w-6 h-6 text-orange-500" />
                                 </div>
                             </div>
-                            <p className="text-sm text-muted-foreground mt-3">Keep going! 🔥</p>
+                            <p className="text-sm text-muted-foreground mt-3">Keep going!</p>
                         </CardContent>
                     </Card>
 
@@ -343,6 +387,7 @@ export default function RoadmapPage() {
                                                 key={task.id}
                                                 task={task}
                                                 onStatusChange={updateTaskStatus}
+                                                onAction={handleTaskAction}
                                                 isUpdating={updatingTask === task.id}
                                             />
                                         ))}
@@ -371,6 +416,7 @@ export default function RoadmapPage() {
                                                 key={task.id}
                                                 task={task}
                                                 onStatusChange={updateTaskStatus}
+                                                onAction={handleTaskAction}
                                                 isUpdating={updatingTask === task.id}
                                                 showDate
                                             />
@@ -409,6 +455,7 @@ export default function RoadmapPage() {
                                                 key={task.id}
                                                 task={task}
                                                 onStatusChange={updateTaskStatus}
+                                                onAction={handleTaskAction}
                                                 isUpdating={updatingTask === task.id}
                                                 compact
                                             />
@@ -482,12 +529,14 @@ export default function RoadmapPage() {
 function TaskItem({
     task,
     onStatusChange,
+    onAction,
     isUpdating,
     showDate = false,
     compact = false
 }: {
     task: Task;
     onStatusChange: (id: string, status: string) => void;
+    onAction?: (task: Task) => void;
     isUpdating: boolean;
     showDate?: boolean;
     compact?: boolean;
@@ -563,8 +612,14 @@ function TaskItem({
                 {task.status !== 'completed' && task.status !== 'skipped' && (
                     <Button
                         size="sm"
-                        variant="ghost"
-                        onClick={() => onStatusChange(task.id, task.status === 'pending' ? 'in_progress' : 'completed')}
+                        variant={task.status === 'pending' ? 'default' : 'ghost'}
+                        onClick={() => {
+                            if (task.status === 'pending' && onAction) {
+                                onAction(task); // navigate + mark in_progress
+                            } else {
+                                onStatusChange(task.id, 'completed');
+                            }
+                        }}
                         disabled={isUpdating}
                         className="shrink-0"
                     >

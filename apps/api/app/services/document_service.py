@@ -210,38 +210,43 @@ class DocumentService:
             # --- Auto-Index into Vector Store ---
             try:
                 logger.info(f"Indexing document {doc.id} into vector store...")
-                embedding_pipeline = EmbeddingPipeline(storage_path="data/vectors")
-                
-                # Make sure we load existing index first
-                try:
-                    embedding_pipeline.load()
-                except Exception:
-                    pass
-                
+
+                # Use the app-level singleton pipeline (same instance as RAG queries)
+                from app.services import embedding_registry
+                embedding_pipeline = embedding_registry.get_pipeline()
+
+                if embedding_pipeline is None:
+                    # Fallback: create fresh pipeline (e.g. during tests)
+                    from app.core.config import settings
+                    embedding_pipeline = EmbeddingPipeline(
+                        model_name=settings.NVIDIA_EMBED_MODEL,
+                        storage_path=settings.VECTOR_STORAGE_PATH,
+                        dimension=settings.NVIDIA_EMBED_DIM,
+                    )
+
                 # Convert to format expected by index_chunks
                 chunk_dicts = [
                     {
-                        "id": str(db_chunk.id),  # Use UUID from DB
+                        "id": str(db_chunk.id),
                         "content": db_chunk.content,
                         "document_id": doc.id,
                         "chunk_type": db_chunk.chunk_type,
-                        "syllabus_tags": [], # Metadata not available at this stage yet
+                        "syllabus_tags": [],
                         "source": doc.original_filename,
                     }
-                    for db_chunk in chunks_to_embed 
+                    for db_chunk in chunks_to_embed
                 ]
-                
+
                 await embedding_pipeline.index_chunks(
                     chunks=chunk_dicts,
                     user_id=doc.user_id,
                 )
-                # Note: index_chunks now auto-saves
-                logger.info(f"Successfully indexed document {doc.id}")
-                
+                logger.info(f"Successfully indexed {len(chunk_dicts)} chunks for document {doc.id}. "
+                            f"Total vectors in store: {embedding_pipeline.vector_store.size}")
+
             except Exception as e:
                 logger.error(f"Failed to index document {doc.id}: {e}")
                 # Don't fail the whole process, just log it
-                # We can retry indexing later manually if needed
             
         except Exception as e:
             logger.error(f"Document processing failed: {doc.id} - {e}")

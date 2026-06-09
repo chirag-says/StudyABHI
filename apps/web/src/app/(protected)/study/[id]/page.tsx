@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, ThumbsUp, ThumbsDown, FileText, X, ChevronLeft, ChevronRight, Loader2, BookOpen, Sparkles } from 'lucide-react';
+import { Send, ThumbsUp, ThumbsDown, FileText, X, ChevronLeft, ChevronRight, Loader2, BookOpen, Bot } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import api, { getErrorMessage } from '@/services/api';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 
 interface Message {
     id: string;
@@ -114,19 +115,36 @@ export default function StudyPage() {
         try {
             const response = await api.post<{
                 answer: string;
-                sources: Citation[];
+                citations: Array<{
+                    chunk_id: string;
+                    source: string;
+                    snippet: string;
+                    relevance_score: number;
+                    page_number?: number;
+                }>;
             }>('/rag/query', {
                 question: userMessage.content,
                 document_ids: [documentId],
             });
 
-            // Update with actual response
+            const answer = response.data.answer;
+            const isError = answer.startsWith('[Error:') || answer.startsWith('[The AI model');
+
+            // Map backend citations → frontend Citation interface
+            const mappedCitations: Citation[] = (response.data.citations || []).map(c => ({
+                page: c.page_number || 0,
+                text: c.snippet || c.source,
+                chunk_id: c.chunk_id,
+            }));
+
             setMessages(prev => prev.map(msg =>
                 msg.id === assistantId
                     ? {
                         ...msg,
-                        content: response.data.answer,
-                        citations: response.data.sources,
+                        content: isError
+                            ? `I'm sorry, I encountered an issue processing your question. Please try again.\n\n*Details: ${answer}*`
+                            : answer,
+                        citations: mappedCitations,
                         isStreaming: false,
                     }
                     : msg
@@ -204,7 +222,7 @@ export default function StudyPage() {
                     <div className="py-4 space-y-2">
                         <Button variant="outline" className="w-full justify-start" asChild>
                             <a href={`/quiz/generate?document=${documentId}`}>
-                                <Sparkles className="w-4 h-4 mr-2" />
+                                <Bot className="w-4 h-4 mr-2" />
                                 Generate Quiz
                             </a>
                         </Button>
@@ -250,7 +268,7 @@ export default function StudyPage() {
                             <ChevronLeft className="w-6 h-6" />
                         </Link>
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                            <Sparkles className="w-5 h-5 text-white" />
+                            <Bot className="w-5 h-5 text-white" />
                         </div>
                         <div>
                             <h1 className="font-semibold">AI Study Assistant</h1>
@@ -296,7 +314,7 @@ export default function StudyPage() {
                                 {/* Citations */}
                                 {message.citations && message.citations.length > 0 && (
                                     <div className="mt-3 pt-3 border-t border-muted-foreground/20">
-                                        <p className="text-xs font-medium mb-2 opacity-70">📖 Sources:</p>
+                                        <p className="text-xs font-medium mb-2 opacity-70">Sources</p>
                                         <div className="space-y-1">
                                             {message.citations.slice(0, 3).map((citation, i) => (
                                                 <div

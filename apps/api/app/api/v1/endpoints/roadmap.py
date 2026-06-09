@@ -208,20 +208,33 @@ async def complete_onboarding(
             medium=request.medium
         )
     
-    # Calculate days to prelims
+    # Get plan_id before any potential session expiry
+    plan_id = str(study_plan.id)
+    phase_id = study_plan.current_phase_id  # plain column, safe after refresh
+
+    # Query phase name directly — never touch the relationship to avoid lazy-load crash
+    phase_name: str | None = None
+    if phase_id:
+        from app.models.roadmap import StudyPhase
+        phase_result = await db.execute(
+            select(StudyPhase.name).where(StudyPhase.id == phase_id)
+        )
+        phase_name = phase_result.scalar_one_or_none()
+
     today = date.today()
     days_to_prelims = None
-    if study_plan.target_prelims_date:
-        days_to_prelims = (study_plan.target_prelims_date - today).days
-    
+    prelims_date = study_plan.target_prelims_date
+    if prelims_date:
+        days_to_prelims = (prelims_date - today).days
+
     return StudyPlanResponse(
-        id=study_plan.id,
+        id=plan_id,
         target_exam_year=study_plan.target_exam_year,
         preparation_level=study_plan.preparation_level,
         study_preference=study_plan.study_preference,
         daily_study_hours=study_plan.daily_study_hours,
         overall_progress=study_plan.overall_progress,
-        current_phase_name=study_plan.current_phase.name if study_plan.current_phase else None,
+        current_phase_name=phase_name,
         onboarding_completed=study_plan.onboarding_completed,
         days_to_prelims=days_to_prelims
     )

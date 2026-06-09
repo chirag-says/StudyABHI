@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import {
     Target, ArrowRight, ArrowLeft, CheckCircle, Clock,
     GraduationCap, Briefcase, Sun, Moon, Sunrise, Sunset,
-    BookOpen, Zap, Coffee, Timer, Loader2, AlertTriangle
+    BookOpen, Zap, Coffee, Timer, Loader2, AlertTriangle,
+    Sprout, TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import api, { getErrorMessage } from '@/services/api';
@@ -168,10 +169,10 @@ export default function OnboardingPage() {
 
                             <div className="space-y-4 mt-8">
                                 {[
-                                    { value: 'beginner', label: 'Complete Beginner', desc: "Just starting, haven't read any UPSC-specific material yet", icon: '🌱' },
-                                    { value: 'foundation', label: 'Foundation Level', desc: 'Read some NCERTs, familiar with basic concepts', icon: '📚' },
-                                    { value: 'intermediate', label: 'Intermediate', desc: 'Covered 30-50% of syllabus, attempted some mocks', icon: '📈' },
-                                    { value: 'advanced', label: 'Advanced', desc: 'Covered most syllabus, appeared in prelims before', icon: '🎯' }
+                                    { value: 'beginner', label: 'Complete Beginner', desc: "Just starting, haven't read any UPSC-specific material yet", icon: <Sprout className="w-8 h-8 text-green-500" /> },
+                                    { value: 'foundation', label: 'Foundation Level', desc: 'Read some NCERTs, familiar with basic concepts', icon: <BookOpen className="w-8 h-8 text-blue-500" /> },
+                                    { value: 'intermediate', label: 'Intermediate', desc: 'Covered 30-50% of syllabus, attempted some mocks', icon: <TrendingUp className="w-8 h-8 text-orange-500" /> },
+                                    { value: 'advanced', label: 'Advanced', desc: 'Covered most syllabus, appeared in prelims before', icon: <Target className="w-8 h-8 text-red-500" /> }
                                 ].map(level => (
                                     <button
                                         key={level.value}
@@ -181,7 +182,7 @@ export default function OnboardingPage() {
                                             : 'border-muted hover:border-primary/50'
                                             }`}
                                     >
-                                        <span className="text-3xl">{level.icon}</span>
+                                        <div className="flex-shrink-0">{level.icon}</div>
                                         <div>
                                             <div className="font-semibold text-lg">{level.label}</div>
                                             <div className="text-sm text-muted-foreground">{level.desc}</div>

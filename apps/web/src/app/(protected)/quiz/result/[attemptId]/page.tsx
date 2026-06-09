@@ -25,10 +25,15 @@ interface QuizResult {
 interface TopicPerformance {
     topic_id: string;
     topic_name: string;
-    correct: number;
-    total: number;
-    percentage: number;
+    correct_answers: number;  // backend field
+    correct?: number;         // alias
+    total_questions: number;  // backend field
+    total?: number;           // alias
+    accuracy?: number;        // backend field
+    percentage?: number;      // alias
     is_weak: boolean;
+    wrong_answers?: number;
+    avg_time_seconds?: number;
 }
 
 interface QuestionResult {
@@ -39,6 +44,7 @@ interface QuestionResult {
     selected_option: number | null;
     is_correct: boolean;
     explanation?: string;
+    time_spent?: number;
 }
 
 export default function QuizResultPage() {
@@ -68,10 +74,25 @@ export default function QuizResultPage() {
     };
 
     const formatTime = (seconds: number): string => {
+        if (!seconds || seconds <= 0) return '—';
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
+        if (mins === 0) return `${secs}s`;
         return `${mins}m ${secs}s`;
     };
+
+    // Normalize topic fields from backend (handles both naming conventions)
+    const normalizeTopic = (t: TopicPerformance) => ({
+        ...t,
+        correct: t.correct ?? t.correct_answers ?? 0,
+        total: t.total ?? t.total_questions ?? 0,
+        percentage: t.percentage ?? t.accuracy ?? (
+            (t.total_questions ?? 0) > 0
+                ? ((t.correct_answers ?? 0) / (t.total_questions ?? 1)) * 100
+                : 0
+        ),
+        is_weak: t.is_weak ?? ((t.accuracy ?? t.percentage ?? 0) < 50),
+    });
 
     const getScoreColor = (percentage: number): string => {
         if (percentage >= 80) return 'text-green-600 dark:text-green-400';
@@ -101,7 +122,10 @@ export default function QuizResultPage() {
         );
     }
 
-    const weakTopics = result.topic_performance.filter(t => t.is_weak);
+    const weakTopics = result.topic_performance.map(normalizeTopic).filter(t => t.is_weak);
+    const normalizedTopics = result.topic_performance.map(normalizeTopic);
+    const skippedCount = result.skipped_questions ?? (result as any).skipped ?? 0;
+    const timeSpent = result.time_spent_seconds ?? 0;
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
@@ -120,7 +144,7 @@ export default function QuizResultPage() {
 
                     {/* Status */}
                     <p className="text-xl mb-2">
-                        {result.passed ? '🎉 Congratulations! You passed!' : '💪 Keep practicing!'}
+                        {result.passed ? 'Congratulations! You passed!' : 'Keep practicing!'}
                     </p>
                     <p className="opacity-80">
                         {result.correct_answers} of {result.total_questions} correct
@@ -143,25 +167,25 @@ export default function QuizResultPage() {
                     </div>
                     <div className="bg-card border rounded-xl p-4 text-center">
                         <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-                        <p className="text-2xl font-bold text-yellow-600">{result.skipped_questions}</p>
+                        <p className="text-2xl font-bold text-yellow-600">{skippedCount}</p>
                         <p className="text-sm text-muted-foreground">Skipped</p>
                     </div>
                     <div className="bg-card border rounded-xl p-4 text-center">
                         <Target className="w-8 h-8 mx-auto mb-2 text-primary" />
-                        <p className="text-2xl font-bold">{result.time_spent_seconds ? formatTime(result.time_spent_seconds) : '-'}</p>
+                        <p className="text-2xl font-bold">{formatTime(timeSpent)}</p>
                         <p className="text-sm text-muted-foreground">Time Spent</p>
                     </div>
                 </div>
 
                 {/* Topic Performance */}
-                {result.topic_performance.length > 0 && (
+                {normalizedTopics.length > 0 && (
                     <section className="bg-card border rounded-xl p-6 mb-8">
                         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                             <TrendingUp className="w-5 h-5 text-primary" />
                             Topic-wise Performance
                         </h2>
                         <div className="space-y-4">
-                            {result.topic_performance.map((topic) => (
+                            {normalizedTopics.map((topic) => (
                                 <div key={topic.topic_id}>
                                     <div className="flex items-center justify-between mb-1">
                                         <span className="font-medium">{topic.topic_name}</span>
@@ -174,7 +198,7 @@ export default function QuizResultPage() {
                                             className={`h-full rounded-full transition-all duration-500 ${topic.percentage >= 80 ? 'bg-green-500' :
                                                 topic.percentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                                                 }`}
-                                            style={{ width: `${topic.percentage}%` }}
+                                            style={{ width: `${Math.min(topic.percentage, 100)}%` }}
                                         />
                                     </div>
                                 </div>

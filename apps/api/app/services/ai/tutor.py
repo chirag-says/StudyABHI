@@ -489,12 +489,17 @@ Question:"""
 async def create_ai_tutor(
     rag_pipeline=None,
     llm_provider: str = settings.LLM_PROVIDER,
-    llm_model: str = settings.LLM_MODEL,
+    llm_model: str = settings.NVIDIA_CHAT_MODEL,  # Mistral 128B: best for doc Q&A with citations
 ) -> AITutor:
     """Create and initialize AI Tutor"""
-    from app.services.rag.pipeline import OllamaClient, HuggingFaceClient, MockLLMClient
+    from app.services.rag.pipeline import OllamaClient, HuggingFaceClient, MockLLMClient, NvidiaKimiClient
     
-    if llm_provider == "ollama":
+    if llm_provider == "nvidia":
+        llm_client = NvidiaKimiClient(
+            model=llm_model,
+            api_key=settings.get_chat_api_key(),  # Dedicated Mistral key
+        )
+    elif llm_provider == "ollama":
         llm_client = OllamaClient(model=llm_model)
     elif llm_provider == "huggingface":
         llm_client = HuggingFaceClient(model=llm_model)

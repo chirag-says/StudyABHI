@@ -21,6 +21,7 @@ class LLMProvider(str, Enum):
     OLLAMA = "ollama"      # Local Ollama
     OPENAI = "openai"      # OpenAI API
     HUGGINGFACE = "huggingface"  # HuggingFace Inference
+    NVIDIA = "nvidia"      # NVIDIA NIM API (Kimi K2.5, etc.)
 
 
 @dataclass
@@ -250,6 +251,174 @@ class HuggingFaceClient(BaseLLMClient):
         except Exception as e:
             logger.error(f"HuggingFace generation failed: {e}")
             raise
+
+
+class NvidiaKimiClient(BaseLLMClient):
+    """
+    Client for NVIDIA NIM API (Kimi K2.5 and other models).
+    Uses the OpenAI-compatible chat completions endpoint.
+    Supports streaming responses and thinking mode.
+    """
+    
+    def __init__(
+        self,
+        model: Optional[str] = None,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        enable_thinking: bool = False,  # Only enable for explicit reasoning models
+    ):
+        self.model = model or settings.NVIDIA_MODEL
+        self.api_key = api_key or settings.NVIDIA_API_KEY
+        self.base_url = (base_url or settings.NVIDIA_BASE_URL).rstrip('/')
+        self.enable_thinking = enable_thinking
+        
+        if not self.api_key:
+            logger.warning("NVIDIA API key not set. Set NVIDIA_API_KEY in environment.")
+    
+    async def generate(
+        self,
+        prompt: str,
+        system_prompt: str = SYSTEM_PROMPT,
+        max_tokens: int = 4096,
+        temperature: float = 0.7,
+    ) -> str:
+        """
+        Generate response using NVIDIA NIM API (OpenAI-compatible).
+        Uses streaming internally to avoid connection timeouts with
+        thinking models like Kimi K2.5 that do long internal reasoning.
+        Includes retry logic for transient failures.
+        """
+        if not self.api_key:
+            logger.error("NVIDIA API key not configured")
+            return "[Error: NVIDIA API key not configured. Please set NVIDIA_API_KEY in your environment.]" 
+        
+        last_error = None
+        for attempt in range(3):
+            try:
+                # Collect all chunks from streaming and return as complete string
+                full_response = []
+                async for chunk in self.generate_stream(
+                    prompt=prompt,
+                    system_prompt=system_prompt,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                ):
+                    # Skip error chunks from generate_stream
+                    if chunk.startswith("[Error:"):
+                        raise RuntimeError(chunk)
+                    full_response.append(chunk)
+                
+                result = "".join(full_response)
+                if not result:
+                    if attempt < 2:
+                        logger.warning(f"NVIDIA API returned empty response (attempt {attempt + 1}/3), retrying...")
+                        await asyncio.sleep(1)
+                        continue
+                    return "[The AI model returned an empty response. Please try again.]"
+                return result
+                        
+            except Exception as e:
+                last_error = e
+                logger.warning(f"NVIDIA API attempt {attempt + 1}/3 failed: {type(e).__name__}: {e}")
+                if attempt < 2:
+                    await asyncio.sleep(2 * (attempt + 1))
+                    continue
+        
+        error_msg = f"{type(last_error).__name__}: {str(last_error)}" if last_error else "Unknown error"
+        logger.error(f"NVIDIA API generation failed after 3 attempts: {error_msg}")
+        return f"[Error: AI generation failed after 3 attempts - {error_msg}]"
+    
+    async def generate_stream(
+        self,
+        prompt: str,
+        system_prompt: str = SYSTEM_PROMPT,
+        max_tokens: int = 8192,
+        temperature: float = 0.7,
+    ):
+        """
+        Generate streaming response using NVIDIA NIM API.
+        Yields content chunks as they arrive (SSE format).
+        Only yields the actual answer content, not internal reasoning.
+        """
+        if not self.api_key:
+            yield "[Error: NVIDIA API key not configured]"
+            return
+        
+        try:
+            import httpx
+            
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+                "Accept": "text/event-stream",
+            }
+            
+            payload = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "top_p": 1.0,
+                "stream": True,
+            }
+            
+            # Shorter timeouts — Mistral/Llama respond quickly, no extended reasoning
+            timeout = httpx.Timeout(
+                connect=30.0,
+                read=90.0,    # 90s is plenty for non-reasoning models
+                write=30.0,
+                pool=30.0,
+            )
+            
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                async with client.stream(
+                    "POST",
+                    f"{self.base_url}/chat/completions",
+                    headers=headers,
+                    json=payload,
+                ) as response:
+                    if response.status_code != 200:
+                        error_text = await response.aread()
+                        error_str = error_text.decode('utf-8', errors='replace') if isinstance(error_text, bytes) else str(error_text)
+                        logger.error(f"NVIDIA streaming error {response.status_code}: {error_str[:500]}")
+                        yield f"[Error: NVIDIA API returned status {response.status_code}]"
+                        return
+                    
+                    async for line in response.aiter_lines():
+                        line = line.strip()
+                        if not line or not line.startswith("data: "):
+                            continue
+                        
+                        data_str = line[6:]  # Remove "data: " prefix
+                        
+                        if data_str == "[DONE]":
+                            break
+                        
+                        try:
+                            chunk = json.loads(data_str)
+                            choices = chunk.get("choices", [])
+                            if choices:
+                                delta = choices[0].get("delta", {})
+                                # Kimi K2.5 streams thinking in reasoning_content,
+                                # actual answer in content — only yield the answer
+                                content = delta.get("content", "")
+                                if content:
+                                    yield content
+                        except json.JSONDecodeError:
+                            continue
+                    
+        except httpx.TimeoutException as e:
+            logger.error(f"NVIDIA streaming timed out: {type(e).__name__}: {e}")
+            yield f"[Error: AI request timed out. The model may be overloaded - please try again.]"
+        except httpx.ConnectError as e:
+            logger.error(f"NVIDIA connection failed: {type(e).__name__}: {e}")
+            yield f"[Error: Could not connect to AI service. Please try again later.]"
+        except Exception as e:
+            logger.error(f"NVIDIA streaming failed: {type(e).__name__}: {e}")
+            yield f"[Error: Streaming failed - {type(e).__name__}: {str(e) or 'Unknown error'}]"
 
 
 class MockLLMClient(BaseLLMClient):
@@ -495,7 +664,7 @@ class RAGPipeline:
 def create_rag_pipeline(
     embedding_pipeline: EmbeddingPipeline,
     llm_provider: LLMProvider = LLMProvider(settings.LLM_PROVIDER),
-    model: str = settings.LLM_MODEL,
+    model: str = settings.NVIDIA_CHAT_MODEL,  # Mistral 128B: best for RAG citation QA
     api_key: Optional[str] = None,
     **kwargs,
 ) -> RAGPipeline:
@@ -506,16 +675,21 @@ def create_rag_pipeline(
         embedding_pipeline: Initialized embedding pipeline
         llm_provider: LLM provider to use
         model: Model name
-        api_key: API key (if required)
+        api_key: API key (uses dedicated chat key by default)
         **kwargs: Additional arguments for RAG pipeline
         
     Returns:
         Configured RAGPipeline instance
     """
-    if llm_provider == LLMProvider.OLLAMA:
+    # Use dedicated chat key if no override provided
+    resolved_key = api_key or settings.get_chat_api_key()
+    
+    if llm_provider == LLMProvider.NVIDIA:
+        llm_client = NvidiaKimiClient(model=model, api_key=resolved_key)
+    elif llm_provider == LLMProvider.OLLAMA:
         llm_client = OllamaClient(model=model)
     elif llm_provider == LLMProvider.HUGGINGFACE:
-        llm_client = HuggingFaceClient(model=model, api_key=api_key)
+        llm_client = HuggingFaceClient(model=model, api_key=resolved_key)
     else:
         llm_client = MockLLMClient(model=model)
     
@@ -528,35 +702,34 @@ def create_rag_pipeline(
 
 async def create_complete_rag_system(
     storage_path: str = "data/vectors",
-    embedding_model: str = "all-MiniLM-L6-v2",
+    embedding_model: str = "nvidia/nv-embedqa-e5-v5",
     llm_provider: LLMProvider = LLMProvider(settings.LLM_PROVIDER),
     llm_model: str = settings.LLM_MODEL,
 ) -> RAGPipeline:
     """
     Create a complete RAG system with all components.
-    
+
     Args:
         storage_path: Path for vector storage
-        embedding_model: Sentence transformer model
+        embedding_model: NVIDIA embedding model name
         llm_provider: LLM provider
         llm_model: LLM model name
-        
+
     Returns:
         Ready-to-use RAGPipeline
     """
     from app.services.rag.embeddings import EmbeddingPipeline
-    
-    # Create embedding pipeline
+
     embedding_pipeline = EmbeddingPipeline(
         model_name=embedding_model,
         storage_path=storage_path,
     )
-    
-    # Create RAG pipeline
+
     rag_pipeline = create_rag_pipeline(
         embedding_pipeline=embedding_pipeline,
         llm_provider=llm_provider,
         model=llm_model,
     )
-    
+
     return rag_pipeline
+

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Sparkles, Loader2, FileText, Settings, BookOpen, AlertCircle } from 'lucide-react';
+import { Bot, Loader2, FileText, Settings, BookOpen, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import api, { getErrorMessage } from '@/services/api';
 
@@ -93,7 +93,7 @@ export default function GenerateQuizPage() {
             <div className="max-w-md w-full">
                 <div className="text-center mb-8">
                     <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <Sparkles className="w-8 h-8 text-primary" />
+                        <Bot className="w-8 h-8 text-primary" />
                     </div>
                     <h1 className="text-3xl font-bold">Generate Quiz</h1>
                     <p className="text-muted-foreground mt-2">
@@ -170,7 +170,7 @@ export default function GenerateQuizPage() {
                             </>
                         ) : (
                             <>
-                                <Sparkles className="w-4 h-4 mr-2" />
+                                <Bot className="w-4 h-4 mr-2" />
                                 Generate Quiz Now
                             </>
                         )}

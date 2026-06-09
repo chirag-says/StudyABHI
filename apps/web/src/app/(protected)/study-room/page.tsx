@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     BookOpen,
     Brain,
@@ -18,7 +18,7 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     Settings,
-    Sparkles,
+    Bot,
     Target,
     X,
     ExternalLink,
@@ -267,13 +267,12 @@ export default function StudyRoomPage() {
         };
     }, []);
 
-    // Handle focus changes
+    // Track whether user is currently focused (ref to avoid stale closure)
+    const isFocusedRef = useRef(true);
+
+    // Handle focus changes from FocusTracker
     const handleFocusChange = useCallback((isFocused: boolean) => {
-        if (isFocused) {
-            // Resume focus time tracking
-        } else {
-            // Pause focus time tracking
-        }
+        isFocusedRef.current = isFocused;
     }, []);
 
     // Handle distraction
@@ -282,22 +281,19 @@ export default function StudyRoomPage() {
             ...prev,
             distractions: prev.distractions + 1
         }));
-
-        // Optional: Show distraction notification
-        if (Notification.permission === 'granted') {
-            // Don't spam notifications, but can add a subtle one
-        }
     }, []);
 
-    // Update focus time
+    // Update focus time — only increment when tracking is enabled AND user is focused
     useEffect(() => {
         if (!focusTrackingEnabled) return;
 
         const interval = setInterval(() => {
-            setSessionStats(prev => ({
-                ...prev,
-                focusTime: prev.focusTime + 1
-            }));
+            if (isFocusedRef.current) {
+                setSessionStats(prev => ({
+                    ...prev,
+                    focusTime: prev.focusTime + 1
+                }));
+            }
         }, 1000);
 
         return () => clearInterval(interval);
@@ -512,7 +508,10 @@ export default function StudyRoomPage() {
                         {/* Secondary Content - Quiz or Chat */}
                         {viewMode !== 'focus' && (
                             <div className="space-y-4 md:space-y-6 overflow-hidden">
-                                <QuickQuiz documentId={documentId || undefined} />
+                                <QuickQuiz
+                                documentId={documentId || undefined}
+                                onAnswer={handleQuizAnswer}
+                            />
                             </div>
                         )}
 

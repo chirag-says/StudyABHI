@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     )
 
     # Application
-    APP_NAME: str = "UPSC AI Platform"
+    APP_NAME: str = "StudyABHI"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     ENVIRONMENT: str = "development"  # development, staging, production
@@ -52,10 +52,46 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
     
     # AI Services
-    LLM_PROVIDER: str = "ollama"
-    LLM_MODEL: str = "phi3:mini"
+    LLM_PROVIDER: str = "nvidia"  # ollama, nvidia, huggingface, openai
+    LLM_MODEL: str = "mistralai/mistral-medium-3.5-128b"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OPENAI_API_KEY: Optional[str] = None
+    NVIDIA_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
+
+    # Primary API key (fallback for all models)
+    NVIDIA_API_KEY: Optional[str] = None
+
+    # Per-model dedicated API keys (each has its own rate limit)
+    NVIDIA_CHAT_API_KEY: Optional[str] = None   # Mistral 128B — RAG/Chat
+    NVIDIA_QUIZ_API_KEY: Optional[str] = None   # Llama 8B — Quiz generation
+    NVIDIA_PLAN_API_KEY: Optional[str] = None   # Kimi k2.6 — Planning/Roadmap
+
+    # Model routing — each task uses the optimal model
+    NVIDIA_MODEL: str = "mistralai/mistral-medium-3.5-128b"       # fallback / default
+    NVIDIA_CHAT_MODEL: str = "mistralai/mistral-medium-3.5-128b"  # RAG chat: best instruction following
+    NVIDIA_QUIZ_MODEL: str = "meta/llama-3.1-8b-instruct"         # Quiz gen: fast + structured JSON
+    NVIDIA_PLAN_MODEL: str = "moonshotai/kimi-k2.6"               # Roadmap planning: long-horizon reasoning
+
+    NVIDIA_EMBED_MODEL: str = "nvidia/nv-embedqa-e5-v5"  # Embedding model
+    NVIDIA_EMBED_DIM: int = 1024  # Embedding dimension
+
+    def get_chat_api_key(self) -> Optional[str]:
+        """Return dedicated chat key, fall back to primary."""
+        return self.NVIDIA_CHAT_API_KEY or self.NVIDIA_API_KEY
+
+    def get_quiz_api_key(self) -> Optional[str]:
+        """Return dedicated quiz key, fall back to primary."""
+        return self.NVIDIA_QUIZ_API_KEY or self.NVIDIA_API_KEY
+
+    def get_plan_api_key(self) -> Optional[str]:
+        """Return dedicated plan key, fall back to primary."""
+        return self.NVIDIA_PLAN_API_KEY or self.NVIDIA_API_KEY
+
+
+    # Vector Storage
+    VECTOR_STORAGE_PATH: str = "data/vectors"
+
+    # Legacy (unused but kept for config compatibility)
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
     

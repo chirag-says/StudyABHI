@@ -163,137 +163,103 @@ class QuickQuizResponse(BaseModel):
 async def get_quick_quiz(
     document_id: Optional[str] = None,
     topic_id: Optional[str] = None,
+    topic: Optional[str] = None,
     count: int = 5,
+    difficulty: str = "medium",
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
     Get a quick quiz for flashcard-style practice.
-    Returns questions with answers for immediate feedback.
+    
+    First attempts to fetch from the database. If no published questions exist,
+    falls back to AI-generated questions using Kimi K2.5.
     """
-    # Simply fetch random questions from the database for now
-    # In a real app, this would be smarter (e.g., spaced repetition)
-    
-    query = select(QuizQuestion).join(Quiz).where(Quiz.status == "published")
-    
-    # Filter by document/topic if provided
-    if document_id:
-        query = query.where(Quiz.source_document_id == document_id)
-    if topic_id:
-        query = query.where(QuizQuestion.topic_id == topic_id)
-    
-    query = query.order_by(func.random()).limit(count)
-    result = await db.execute(query)
-    questions = result.scalars().all()
-    
-    quick_questions = []
-    
-    if not questions:
-        # Fallback if no questions found in DB, return empty list (frontend handles this)
-        return QuickQuizResponse(questions=[])
+    # Step 1: Try database first
+    try:
+        query = select(QuizQuestion).join(Quiz).where(Quiz.status == "published")
         
-    for q in questions:
-        # Parse options from JSON string if stored as string, or use directly if list
-        options = q.options if isinstance(q.options, list) else [] 
+        if document_id:
+            query = query.where(Quiz.source_document_id == document_id)
+        if topic_id:
+            query = query.where(QuizQuestion.topic_id == topic_id)
         
-        quick_questions.append(QuickQuizQuestion(
-            id=str(q.id),
-            question=q.question_text,
-            options=options,
-            correct_answer=q.correct_option,
-            explanation=q.explanation
-        ))
+        query = query.order_by(func.random()).limit(count)
+        result = await db.execute(query)
+        questions = result.scalars().all()
         
-    return QuickQuizResponse(questions=quick_questions)
+        if questions:
+            quick_questions = []
+            for q in questions:
+                options = q.options if isinstance(q.options, list) else []
+                quick_questions.append(QuickQuizQuestion(
+                    id=str(q.id),
+                    question=q.question_text,
+                    options=options,
+                    correct_answer=q.correct_option,
+                    explanation=q.explanation
+                ))
+            return QuickQuizResponse(questions=quick_questions)
+    except Exception as e:
+        logger.warning(f"DB quiz fetch failed, falling back to AI: {e}")
+    
+    # Step 2: AI-generated fallback using Kimi K2.5
+    try:
+        from app.services.ai.quiz_generator import create_quiz_generator, QuestionDifficulty
+        import uuid
+        
+        diff_map = {
+            "easy": QuestionDifficulty.EASY,
+            "medium": QuestionDifficulty.MEDIUM,
+            "hard": QuestionDifficulty.HARD,
+            "expert": QuestionDifficulty.EXPERT,
+        }
+        ai_difficulty = diff_map.get(difficulty, QuestionDifficulty.MEDIUM)
+        
+        # Build context for the quiz
+        topic_name = topic or "General UPSC Preparation"
+        content = f"""Generate questions on: {topic_name}
+        
+Key topics for UPSC include:
+- Indian Polity and Governance, Constitution
+- Indian Economy, Social Development
+- Indian History and Culture
+- Geography, Environment and Ecology
+- Science and Technology
+- Current Affairs
+- International Relations
+
+Focus on {topic_name} and create exam-quality MCQs suitable for UPSC Prelims preparation."""
+        
+        generator = await create_quiz_generator()
+        result = await generator.generate_quiz(
+            content=content,
+            question_count=count,
+            difficulty=ai_difficulty,
+            topic_name=topic_name,
+        )
+        
+        if result.success and result.questions:
+            quick_questions = [
+                QuickQuizQuestion(
+                    id=str(uuid.uuid4()),
+                    question=q.question_text,
+                    options=q.options,
+                    correct_answer=q.correct_option,
+                    explanation=q.explanation,
+                )
+                for q in result.questions
+            ]
+            return QuickQuizResponse(questions=quick_questions)
+        
+    except Exception as e:
+        logger.error(f"AI quiz generation failed: {e}")
+    
+    # Step 3: Return empty (frontend handles this with fallback questions)
+    return QuickQuizResponse(questions=[])
 
 
 # ==================== Quiz Generation Endpoints ====================
-
-
-# ==================== Quiz Attempt Endpoints ====================
-
-@router.post("/attempts/{attempt_id}/answer", response_model=SubmitAnswerResponse)
-async def submit_answer(
-    attempt_id: str,
-    request: SubmitAnswerRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Submit an answer to a question"""
-    from app.services.quiz_service import QuizEvaluator
-    
-    evaluator = QuizEvaluator(db)
-    
-    try:
-        answer = await evaluator.submit_answer(
-            attempt_id=attempt_id,
-            question_id=request.question_id,
-            selected_option=request.selected_option,
-            time_spent_seconds=request.time_spent_seconds,
-        )
-        return answer
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
-
-@router.post("/attempts/{attempt_id}/complete", response_model=CompleteAttemptResponse)
-async def complete_attempt(
-    attempt_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Complete a quiz attempt and get results"""
-    from app.services.quiz_service import QuizEvaluator
-    
-    evaluator = QuizEvaluator(db)
-    
-    try:
-        result = await evaluator.complete_attempt(attempt_id)
-        await db.commit()
-        
-        return CompleteAttemptResponse(**result.to_dict())
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
-
-@router.post("/attempt/{attempt_id}/submit", response_model=CompleteAttemptResponse, include_in_schema=False)
-async def complete_attempt_legacy(
-    attempt_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Legacy endpoint alias"""
-    return await complete_attempt(attempt_id, db, current_user)
-
-
-@router.get("/attempts/{attempt_id}/result", response_model=CompleteAttemptResponse)
-async def get_attempt_result(
-    attempt_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Get result of a completed attempt"""
-    from app.services.quiz_service import QuizEvaluator
-    
-    evaluator = QuizEvaluator(db)
-    
-    try:
-        result = await evaluator.get_attempt_result(attempt_id)
-        return CompleteAttemptResponse(**result.to_dict())
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
 
 
 @router.post("/generate", response_model=QuizDetailSchema)
@@ -311,7 +277,14 @@ async def generate_quiz(
         from app.services.ai.quiz_generator import create_quiz_generator, QuestionDifficulty
         from app.services.quiz_service import QuizService
         
-        # ... (diff map) ...
+        # Map difficulty string to enum
+        diff_map = {
+            "easy": QuestionDifficulty.EASY,
+            "medium": QuestionDifficulty.MEDIUM,
+            "hard": QuestionDifficulty.HARD,
+            "expert": QuestionDifficulty.EXPERT,
+        }
+        difficulty = diff_map.get(request.difficulty, QuestionDifficulty.MEDIUM)
         
         # Generate questions with real LLM
         generator = await create_quiz_generator()
@@ -597,6 +570,11 @@ async def publish_quiz(
         )
     
     quiz = await quiz_service.publish_quiz(quiz_id)
+    if not quiz:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quiz not found after publish"
+        )
     await db.commit()
     
     return QuizSchema(
@@ -714,6 +692,16 @@ async def complete_attempt(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+
+
+@router.post("/attempt/{attempt_id}/submit", response_model=CompleteAttemptResponse, include_in_schema=False)
+async def complete_attempt_legacy(
+    attempt_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Legacy endpoint alias"""
+    return await complete_attempt(attempt_id, db, current_user)
 
 
 @router.get("/attempts/{attempt_id}/result", response_model=CompleteAttemptResponse)

@@ -583,12 +583,17 @@ class QuizGenerator:
 # Factory function
 async def create_quiz_generator(
     llm_provider: str = settings.LLM_PROVIDER,
-    llm_model: str = settings.LLM_MODEL,
+    llm_model: str = settings.NVIDIA_QUIZ_MODEL,  # Llama 3.1 8B: fast + structured JSON
 ) -> QuizGenerator:
     """Create and initialize Quiz Generator"""
-    from app.services.rag.pipeline import OllamaClient, HuggingFaceClient, MockLLMClient
+    from app.services.rag.pipeline import OllamaClient, HuggingFaceClient, MockLLMClient, NvidiaKimiClient
     
-    if llm_provider == "ollama":
+    if llm_provider == "nvidia":
+        llm_client = NvidiaKimiClient(
+            model=llm_model,
+            api_key=settings.get_quiz_api_key(),  # Dedicated Llama key
+        )
+    elif llm_provider == "ollama":
         llm_client = OllamaClient(model=llm_model)
     elif llm_provider == "huggingface":
         llm_client = HuggingFaceClient(model=llm_model)

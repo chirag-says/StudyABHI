@@ -1,0 +1,386 @@
+{
+  "timestamp": "2026-06-09T20:48:59",
+  "total_pdfs": 77,
+  "succeeded": [
+    {
+      "file": "Class_XII_Heritage_Craft_-_Craft_Traditions_of_India.pdf",
+      "id": "1cda0aef-5d4e-43c7-8680-81dfaafedcbb",
+      "subject": "Art-Culture"
+    },
+    {
+      "file": "Introduction to Indian Art  _.pdf",
+      "id": "92d7a9e9-4e53-4319-b056-e836bc4cb133",
+      "subject": "Art-Culture"
+    },
+    {
+      "file": "NCERT-Class-11-Heritage-Crafts.pdf",
+      "id": "6d17dd90-476a-4328-8f1b-88afd6324aee",
+      "subject": "Art-Culture"
+    },
+    {
+      "file": "Vision-IAS-PT365-Art-Culture-2025.pdf",
+      "id": "a69c7f7b-ed60-461c-a9d0-6958c6e9fe6c",
+      "subject": "Art-Culture"
+    },
+    {
+      "file": "Vision-IAS-PT365-Culture-2024.pdf",
+      "id": "cc3e862b-d261-4c9e-b96f-266e721c1c5c",
+      "subject": "Art-Culture"
+    },
+    {
+      "file": "Vision-IAS-PT365-March-2025-Part1.pdf",
+      "id": "024250ec-861d-4029-a2fb-116e790e10f8",
+      "subject": "Current-Affairs"
+    },
+    {
+      "file": "Vision-IAS-PT365-News-Maps-2025.pdf",
+      "id": "4d239657-287b-40ef-8185-1bc748584b48",
+      "subject": "Current-Affairs"
+    },
+    {
+      "file": "Vision-IAS-PT365-Personalities-2025.pdf",
+      "id": "4e006b7f-c4ba-487b-a927-9ec7d16694ba",
+      "subject": "Current-Affairs"
+    },
+    {
+      "file": "NCERT-Class-10-Economics.pdf",
+      "id": "a0e51fbd-eb92-46cb-b6cc-03bc27e70721",
+      "subject": "Economy"
+    },
+    {
+      "file": "NCERT-Class-11-Economics.pdf",
+      "id": "42c5e7ab-c58f-4ba3-8bfd-1c2b3ca547b3",
+      "subject": "Economy"
+    },
+    {
+      "file": "NCERT-Class-12-Economics-Part-1.pdf",
+      "id": "1497d71c-b92c-4304-b414-85a4a385ac31",
+      "subject": "Economy"
+    },
+    {
+      "file": "NCERT-Class-12-Economics-Part-2.pdf",
+      "id": "94b17cae-58ea-4a94-bfc8-271d516c3f28",
+      "subject": "Economy"
+    },
+    {
+      "file": "Vision-IAS-PT365-Economy-2025.pdf",
+      "id": "5334f4d0-b648-430f-97b6-aa6591b0a292",
+      "subject": "Economy"
+    },
+    {
+      "file": "Vision-IAS-PT365-Economy-2026.pdf",
+      "id": "9b77c0f4-85a9-48e4-8c0b-d0ab7eb903bf",
+      "subject": "Economy"
+    },
+    {
+      "file": "Vision-IAS-PT365-Environment-2024.pdf",
+      "id": "f7c4baba-586b-4a53-95b3-0eb0c60f7a90",
+      "subject": "Environment"
+    },
+    {
+      "file": "Vision-IAS-PT365-Environment-2025.pdf",
+      "id": "a94071a7-542b-4adf-ac7f-08cb09cd085c",
+      "subject": "Environment"
+    },
+    {
+      "file": "Vision-IAS-PT365-Environment-2026.pdf",
+      "id": "1ebd192c-4880-4f69-b8fb-8417f6e8703b",
+      "subject": "Environment"
+    },
+    {
+      "file": "Fundamental of Physical Geography (Class XI) 2.pdf",
+      "id": "bf75917f-692b-44ce-a548-033ad53b15eb",
+      "subject": "Geography"
+    },
+    {
+      "file": "Fundamentals of Human Geography (Class XII) 1.pdf",
+      "id": "fe6274a9-b635-4941-a645-328922b2e2e9",
+      "subject": "Geography"
+    },
+    {
+      "file": "Geography.pdf",
+      "id": "d2a29f63-559c-4097-ac0b-c1746bf5dedb",
+      "subject": "Geography"
+    },
+    {
+      "file": "India People and Economy (Class XII).pdf",
+      "id": "e8eee05c-97de-4c2a-b319-eac8df02cf5b",
+      "subject": "Geography"
+    },
+    {
+      "file": "India Physical Environment (Class XI) 2.pdf",
+      "id": "c320efd9-4db6-43e2-98f6-5e42519feef5",
+      "subject": "Geography"
+    },
+    {
+      "file": "NCERT-Class-10-Geography.pdf",
+      "id": "dddb6a8f-a77d-4347-af29-e05c2fd55fb1",
+      "subject": "Geography"
+    },
+    {
+      "file": "NCERT-Class-9-Geography-1.pdf",
+      "id": "615457f2-301d-4a94-adab-6ddb4dc2fabd",
+      "subject": "Geography"
+    },
+    {
+      "file": "Practical Work in Geography Part 1.pdf",
+      "id": "9387d47e-e8bf-4e2f-8291-dc0918348968",
+      "subject": "Geography"
+    },
+    {
+      "file": "Practical Work in Geography Part 2.pdf",
+      "id": "6fcae33e-856a-402c-84b0-0bb55b950ced",
+      "subject": "Geography"
+    },
+    {
+      "file": "History6.pdf",
+      "id": "5ebbc4da-86e7-476b-b836-2a14e771675e",
+      "subject": "History"
+    },
+    {
+      "file": "NCERT-Class-11-History.pdf",
+      "id": "e30f35ed-4ada-4105-9699-41da3797e67b",
+      "subject": "History"
+    },
+    {
+      "file": "NCERT-Class-12-History-Part-1 (1).pdf",
+      "id": "7ca99151-6c4f-4c94-b789-6f3fc5b3a79d",
+      "subject": "History"
+    },
+    {
+      "file": "NCERT-Class-12-History-Part-2.pdf",
+      "id": "e1a56b42-2e0c-4774-b01c-12612ee15d7e",
+      "subject": "History"
+    },
+    {
+      "file": "NCERT-Class-12-History-Part-3.pdf",
+      "id": "151f66a6-c5e4-4a86-8d4f-94163054f8ae",
+      "subject": "History"
+    },
+    {
+      "file": "Vision-IAS-PT365-IR-2024.pdf",
+      "id": "e8ffbfcb-9d3c-4144-b76f-f0d2d40e5809",
+      "subject": "International-Relations"
+    },
+    {
+      "file": "Vision-IAS-PT365-IR-2025.pdf",
+      "id": "8a335caa-3363-40fc-a1b4-f417e348e91f",
+      "subject": "International-Relations"
+    },
+    {
+      "file": "Vision-IAS-PT365-IR-2026.pdf",
+      "id": "eff847c7-a3ee-4a2c-9475-5234a74b5564",
+      "subject": "International-Relations"
+    },
+    {
+      "file": "class 9 abc.pdf",
+      "id": "5a226b88-2682-4411-90aa-0f72ab2b1650",
+      "subject": "NCERT-Class-6-9"
+    },
+    {
+      "file": "class 9 science.pdf",
+      "id": "16dd5ed1-cd05-4045-bff6-a6e3d69441af",
+      "subject": "NCERT-Class-6-9"
+    },
+    {
+      "file": "Copy of our environmemnt class 7 - Copy.pdf",
+      "id": "45a187b2-4832-4f11-97dc-54ff96efc47d",
+      "subject": "NCERT-Class-6-9"
+    },
+    {
+      "file": "Copy of our past class 7 social science.pdf",
+      "id": "6b76d0b8-7114-4264-88ec-098dd59df167",
+      "subject": "NCERT-Class-6-9"
+    },
+    {
+      "file": "Copy of science class 7.pdf",
+      "id": "d8f93faa-465c-4388-831c-e5f461e005ce",
+      "subject": "NCERT-Class-6-9"
+    },
+    {
+      "file": "economics class 9.pdf",
+      "id": "2da619d5-f684-4e59-b995-93c24725501d",
+      "subject": "NCERT-Class-6-9"
+    },
+    {
+      "file": "OUR PAST PART 2 CLASS 8 SOCIAL SCIENCE.pdf",
+      "id": "f2f1d992-3ef9-4e62-837a-cc18237d55c9",
+      "subject": "NCERT-Class-6-9"
+    },
+    {
+      "file": "science class 6.pdf",
+      "id": "f5410e50-8a59-43c2-94b8-7f288268599d",
+      "subject": "NCERT-Class-6-9"
+    },
+    {
+      "file": "science class 8.pdf",
+      "id": "6119ab69-ac51-4819-9c86-f43a2f0d3b3f",
+      "subject": "NCERT-Class-6-9"
+    },
+    {
+      "file": "social science 7.pdf",
+      "id": "12453eb2-7947-4c72-811c-8e5cdf47f7ee",
+      "subject": "NCERT-Class-6-9"
+    },
+    {
+      "file": "SOCIAL SCIENCE AND POLITICAL LIFE PART 3.pdf",
+      "id": "dc898070-c090-46a5-b837-5c0ecb476d8e",
+      "subject": "NCERT-Class-6-9"
+    },
+    {
+      "file": "social science class 8.pdf",
+      "id": "1832a010-af05-4b02-9edf-673b4cb3ccf5",
+      "subject": "NCERT-Class-6-9"
+    },
+    {
+      "file": "social science demo part 1.pdf",
+      "id": "2004f07f-84c3-418c-8601-8ff4dfff488d",
+      "subject": "NCERT-Class-6-9"
+    },
+    {
+      "file": "NCERT-Class-10-Political-Science.pdf",
+      "id": "7be262b9-e5ce-4421-ab90-db54bc9b7a0e",
+      "subject": "Polity"
+    },
+    {
+      "file": "NCERT-Class-11-Political-Science-Part-1.pdf",
+      "id": "2112f6e7-869d-47f7-9ac7-68ff3ba52355",
+      "subject": "Polity"
+    },
+    {
+      "file": "NCERT-Class-11-Political-Science-Part-2-1.pdf",
+      "id": "5368e1b2-5b74-446d-aa32-c2932d1d6bef",
+      "subject": "Polity"
+    },
+    {
+      "file": "NCERT-Class-12-Political-Science-Part-1.pdf",
+      "id": "d204a7ae-5f14-4c2e-b04e-e4ef98e3440f",
+      "subject": "Polity"
+    },
+    {
+      "file": "NCERT-Class-12-Political-Science-Part-2.pdf",
+      "id": "2cd7ef55-e519-4b2c-ac68-aac52fbcf5df",
+      "subject": "Polity"
+    },
+    {
+      "file": "Polity6.pdf",
+      "id": "64fe6123-3511-4852-a51b-717e6935ae25",
+      "subject": "Polity"
+    },
+    {
+      "file": "Vision-IAS-PT365-Polity-2024.pdf",
+      "id": "ad6d631c-284e-4759-bbd3-fc845411e442",
+      "subject": "Polity"
+    },
+    {
+      "file": "Vision-IAS-PT365-Polity-2025.pdf",
+      "id": "fad147f9-ba54-4f94-aba5-2ae9f947ac1b",
+      "subject": "Polity"
+    },
+    {
+      "file": "NCERT-Class-10-Science-Exemplar-Problems-1.pdf",
+      "id": "c5ec4148-5ca9-4bb6-a097-115b3a114f20",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "NCERT-Class-11-Biology.pdf",
+      "id": "4b702111-3744-4981-921d-1f197f502c16",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "NCERT-Class-11-Chemistry-Part-1.pdf",
+      "id": "126aa3f8-6234-4199-9f83-7e0e26a34168",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "NCERT-Class-11-Chemistry-Part-2.pdf",
+      "id": "05391d14-2281-435f-a225-35640c316307",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "NCERT-Class-11-Physics-Part-1.pdf",
+      "id": "5d2bf09c-c14e-42d3-855f-f9b7f9d76bb7",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "NCERT-Class-11-Physics-Part-2.pdf",
+      "id": "31fb3587-0121-43d1-91f0-04138582740b",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "NCERT-Class-12-Biology.pdf",
+      "id": "60f81529-8881-4842-9833-cbc361dbfb30",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "NCERT-Class-12-Chemistry-Part-1.pdf",
+      "id": "ad2bfcdb-36b4-45fb-9cb5-65d447d31e25",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "NCERT-Class-12-Chemistry-Part-2.pdf",
+      "id": "49a29653-2cbb-4c8c-ac88-c42069c8d634",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "NCERT-Class-12-Physics-Part-1.pdf",
+      "id": "45794aa2-eab8-4bd9-9a73-aab98b433850",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "NCERT-Class-12-Physics-Part-2.pdf",
+      "id": "1acb6273-928e-4d19-afa5-2b86af119d18",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "NCERT-Class-9-Science-Exemplar-Problems.pdf",
+      "id": "de3680bd-bd4d-4082-8fb8-94547a2cfcd1",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "Vision-IAS-PT365-Science-Tech-2024.pdf",
+      "id": "91e05098-a1ad-41af-93c5-b63a57fbe2bd",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "Vision-IAS-PT365-Science-Tech-2025.pdf",
+      "id": "d29588c4-03f0-4975-841c-6e4f664f3511",
+      "subject": "Science-Technology"
+    },
+    {
+      "file": "Vision-IAS-PT365-Social-Issues-2024.pdf",
+      "id": "e5ca7ab4-921d-4174-bde7-638ec1e0fdbe",
+      "subject": "Social-Issues"
+    },
+    {
+      "file": "Vision-IAS-PT365-Social-Issues-2025.pdf",
+      "id": "8830c032-b2f6-430e-b769-d1ce95bcacbd",
+      "subject": "Social-Issues"
+    },
+    {
+      "file": "NCERT-Class-11-Sociology-Part-1 (1).pdf",
+      "id": "9b416482-a59b-4808-9336-128f00b01092",
+      "subject": "Sociology"
+    },
+    {
+      "file": "NCERT-Class-11-Sociology-Part-2.pdf",
+      "id": "27b92fe5-0945-445f-9f33-4d4e4a13efdd",
+      "subject": "Sociology"
+    },
+    {
+      "file": "NCERT-Class-12-Sociology-Part-1.pdf",
+      "id": "a63e1fb9-d730-4a1a-a0ac-607064013d4b",
+      "subject": "Sociology"
+    },
+    {
+      "file": "NCERT-Class-12-Sociology-Part-2.pdf",
+      "id": "c910af2d-25a1-464b-8031-cf8a5262bc63",
+      "subject": "Sociology"
+    }
+  ],
+  "skipped": [
+    "Vision-IAS-PT365-Economy-2024.pdf",
+    "NCERT-Class-10-History.pdf"
+  ],
+  "failed": []
+}

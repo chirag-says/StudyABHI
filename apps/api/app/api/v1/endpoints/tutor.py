@@ -157,24 +157,34 @@ async def ask_tutor(
         verbosity = verbosity_map.get(request.verbosity, VerbosityLevel.STANDARD)
         language = language_map.get(request.language, OutputLanguage.ENGLISH)
         
-        # Initialize components
+        # Initialize components using the NVIDIA LLM client
         try:
-            embedding_pipeline = EmbeddingPipeline(
-                model_name="all-MiniLM-L6-v2",
-                storage_path="data/vectors",
+            from app.services.rag.pipeline import NvidiaKimiClient
+            from app.core.config import settings
+            llm_client = NvidiaKimiClient(
+                api_key=settings.NVIDIA_API_KEY,
+                model=settings.NVIDIA_MODEL,
             )
-            embedding_pipeline.load()
+        except Exception:
+            llm_client = None
+
+        try:
+            from app.services.rag import EmbeddingPipeline, create_rag_pipeline, LLMProvider
+            from app.core.config import settings
+            embedding_pipeline = EmbeddingPipeline(
+                storage_path=settings.VECTOR_STORAGE_PATH,
+            )
             rag_pipeline = create_rag_pipeline(
                 embedding_pipeline=embedding_pipeline,
-                llm_provider=LLMProvider.OLLAMA,
+                llm_provider=settings.LLM_PROVIDER,
             )
         except Exception:
             rag_pipeline = None
-        
+
         # Create tutor
         tutor = AITutor(
             rag_pipeline=rag_pipeline,
-            llm_client=MockLLMClient(),  # Replace with real LLM in production
+            llm_client=llm_client,
         )
         
         # Get response
@@ -241,8 +251,9 @@ async def generate_practice_question(
     """Generate a practice question on a topic with model answer"""
     try:
         from app.services.ai import AITutor, QuestionType
-        from app.services.rag.pipeline import MockLLMClient
-        
+        from app.services.rag.pipeline import NvidiaKimiClient
+        from app.core.config import settings
+
         question_type_map = {
             "factual": QuestionType.FACTUAL,
             "conceptual": QuestionType.CONCEPTUAL,
@@ -250,10 +261,14 @@ async def generate_practice_question(
             "comparative": QuestionType.COMPARATIVE,
             "application": QuestionType.APPLICATION,
         }
-        
+
         qtype = question_type_map.get(request.question_type, QuestionType.ANALYTICAL)
-        
-        tutor = AITutor(llm_client=MockLLMClient())
+
+        llm_client = NvidiaKimiClient(
+            api_key=settings.NVIDIA_API_KEY,
+            model=settings.NVIDIA_MODEL,
+        )
+        tutor = AITutor(llm_client=llm_client)
         result = await tutor.practice_question(
             topic=request.topic,
             question_type=qtype,
@@ -289,13 +304,14 @@ async def summarize_content(
     """
     try:
         from app.services.ai import (
-            DocumentSummarizer, 
-            SummaryFormat, 
-            SummaryLength, 
+            DocumentSummarizer,
+            SummaryFormat,
+            SummaryLength,
             SummaryLanguage
         )
-        from app.services.rag.pipeline import MockLLMClient
-        
+        from app.services.rag.pipeline import NvidiaKimiClient
+        from app.core.config import settings
+
         format_map = {
             "bullet": SummaryFormat.BULLET,
             "paragraph": SummaryFormat.PARAGRAPH,
@@ -303,25 +319,29 @@ async def summarize_content(
             "notes": SummaryFormat.NOTES,
             "flashcard": SummaryFormat.FLASHCARD,
         }
-        
+
         length_map = {
             "short": SummaryLength.SHORT,
             "medium": SummaryLength.MEDIUM,
             "long": SummaryLength.LONG,
             "comprehensive": SummaryLength.COMPREHENSIVE,
         }
-        
+
         language_map = {
             "en": SummaryLanguage.ENGLISH,
             "hi": SummaryLanguage.HINDI,
             "hinglish": SummaryLanguage.HINGLISH,
         }
-        
+
         fmt = format_map.get(request.format, SummaryFormat.STRUCTURED)
         length = length_map.get(request.length, SummaryLength.MEDIUM)
         lang = language_map.get(request.language, SummaryLanguage.ENGLISH)
-        
-        summarizer = DocumentSummarizer(llm_client=MockLLMClient())
+
+        llm_client = NvidiaKimiClient(
+            api_key=settings.NVIDIA_API_KEY,
+            model=settings.NVIDIA_MODEL,
+        )
+        summarizer = DocumentSummarizer(llm_client=llm_client)
         
         result = await summarizer.summarize(
             content=request.content,
@@ -360,16 +380,17 @@ async def summarize_document(
 ):
     """Summarize a processed document by its ID"""
     try:
-        from app.services.document_service import DocumentService
         from app.services.ai import (
-            DocumentSummarizer, 
-            SummaryFormat, 
-            SummaryLength, 
+            DocumentSummarizer,
+            SummaryFormat,
+            SummaryLength,
             SummaryLanguage
         )
-        from app.services.rag.pipeline import MockLLMClient
+        from app.services.rag.pipeline import NvidiaKimiClient
+        from app.core.config import settings
         
-        # Get document chunks
+        from app.services.document_service import DocumentService
+
         doc_service = DocumentService(db)
         doc = await doc_service.get_document(request.document_id)
         
@@ -421,7 +442,11 @@ async def summarize_document(
             "hinglish": SummaryLanguage.HINGLISH,
         }
         
-        summarizer = DocumentSummarizer(llm_client=MockLLMClient())
+        llm_client = NvidiaKimiClient(
+            api_key=settings.NVIDIA_API_KEY,
+            model=settings.NVIDIA_MODEL,
+        )
+        summarizer = DocumentSummarizer(llm_client=llm_client)
         
         result = await summarizer.summarize(
             content=content,
@@ -470,17 +495,22 @@ async def create_revision_summary(
     """
     try:
         from app.services.ai import DocumentSummarizer, SummaryLanguage
-        from app.services.rag.pipeline import MockLLMClient
-        
+        from app.services.rag.pipeline import NvidiaKimiClient
+        from app.core.config import settings
+
         language_map = {
             "en": SummaryLanguage.ENGLISH,
             "hi": SummaryLanguage.HINDI,
             "hinglish": SummaryLanguage.HINGLISH,
         }
-        
+
         lang = language_map.get(request.language, SummaryLanguage.ENGLISH)
-        
-        summarizer = DocumentSummarizer(llm_client=MockLLMClient())
+
+        llm_client = NvidiaKimiClient(
+            api_key=settings.NVIDIA_API_KEY,
+            model=settings.NVIDIA_MODEL,
+        )
+        summarizer = DocumentSummarizer(llm_client=llm_client)
         
         result = await summarizer.summarize_for_revision(
             content=request.content,

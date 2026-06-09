@@ -9,7 +9,7 @@ import {
     Trophy,
     RotateCcw,
     Loader2,
-    Sparkles
+    Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import api from '@/services/api';
@@ -26,9 +26,10 @@ interface QuickQuizProps {
     documentId?: string;
     topicId?: string;
     questionsCount?: number;
+    onAnswer?: (isCorrect: boolean) => void;
 }
 
-export function QuickQuiz({ documentId, topicId, questionsCount = 5 }: QuickQuizProps) {
+export function QuickQuiz({ documentId, topicId, questionsCount = 5, onAnswer }: QuickQuizProps) {
     const [questions, setQuestions] = useState<QuizQuestion[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -74,6 +75,9 @@ export function QuickQuiz({ documentId, topicId, questionsCount = 5 }: QuickQuiz
 
         if (answerIndex === questions[currentIndex].correct_answer) {
             setScore(prev => prev + 1);
+            onAnswer?.(true);
+        } else {
+            onAnswer?.(false);
         }
     };
 
@@ -116,7 +120,7 @@ export function QuickQuiz({ documentId, topicId, questionsCount = 5 }: QuickQuiz
                 <Brain className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
                 <p className="text-muted-foreground mb-4">No quiz available for this content.</p>
                 <Button onClick={loadQuestions} variant="outline">
-                    <Sparkles className="w-4 h-4 mr-2" />
+                    <Bot className="w-4 h-4 mr-2" />
                     Generate Quiz
                 </Button>
             </div>
@@ -174,9 +178,9 @@ export function QuickQuiz({ documentId, topicId, questionsCount = 5 }: QuickQuiz
 
                     {/* Message based on score */}
                     <p className="text-lg mb-6">
-                        {percentage >= 80 ? '🎉 Excellent work! You\'re mastering this topic!' :
-                            percentage >= 60 ? '👍 Good job! Keep practicing to improve!' :
-                                '💪 Keep studying! Review the material and try again.'}
+                        {percentage >= 80 ? 'Excellent work! You\'re mastering this topic!' :
+                            percentage >= 60 ? 'Good job! Keep practicing to improve!' :
+                                'Keep studying! Review the material and try again.'}
                     </p>
 
                     {/* Answer Summary */}
@@ -200,7 +204,7 @@ export function QuickQuiz({ documentId, topicId, questionsCount = 5 }: QuickQuiz
                             Try Again
                         </Button>
                         <Button onClick={regenerateQuiz}>
-                            <Sparkles className="w-4 h-4 mr-2" />
+                            <Bot className="w-4 h-4 mr-2" />
                             New Quiz
                         </Button>
                     </div>

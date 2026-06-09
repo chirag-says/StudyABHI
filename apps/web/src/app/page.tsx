@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, BookOpen, Brain, Target, Sparkles } from 'lucide-react';
+import { ArrowRight, BookOpen, Brain, Target, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function HomePage() {
@@ -17,7 +17,7 @@ export default function HomePage() {
                     <div className="max-w-4xl mx-auto text-center">
                         {/* Badge */}
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-8 animate-fade-in">
-                            <Sparkles className="w-4 h-4" />
+                            <Bot className="w-4 h-4" />
                             <span className="text-sm font-medium">AI-Powered Learning Platform</span>
                         </div>
 

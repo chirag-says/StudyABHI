@@ -6,7 +6,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
     auth, users, health, syllabus, content, 
-    documents, rag, tutor, quiz, learning, attention, privacy, feedback, roadmap
+    documents, rag, tutor, quiz, learning, attention, privacy, feedback, roadmap, chat
 )
 
 
@@ -95,5 +95,11 @@ api_router.include_router(
     roadmap.router,
     prefix="/roadmap",
     tags=["Roadmap"]
+)
+
+api_router.include_router(
+    chat.router,
+    prefix="/chat",
+    tags=["Chat"]
 )
 

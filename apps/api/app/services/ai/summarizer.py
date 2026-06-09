@@ -482,13 +482,19 @@ Word count: ~{word_count}"""
 
 # Factory function
 async def create_summarizer(
-    llm_provider: str = "ollama",
-    llm_model: str = "llama2",
+    llm_provider: Optional[str] = None,
+    llm_model: Optional[str] = None,
 ) -> DocumentSummarizer:
     """Create and initialize Document Summarizer"""
-    from app.services.rag.pipeline import OllamaClient, HuggingFaceClient, MockLLMClient
+    from app.services.rag.pipeline import OllamaClient, HuggingFaceClient, MockLLMClient, NvidiaKimiClient
+    from app.core.config import settings
     
-    if llm_provider == "ollama":
+    llm_provider = llm_provider or settings.LLM_PROVIDER
+    llm_model = llm_model or settings.LLM_MODEL
+    
+    if llm_provider == "nvidia":
+        llm_client = NvidiaKimiClient(model=llm_model)
+    elif llm_provider == "ollama":
         llm_client = OllamaClient(model=llm_model)
     elif llm_provider == "huggingface":
         llm_client = HuggingFaceClient(model=llm_model)
@@ -496,3 +502,4 @@ async def create_summarizer(
         llm_client = MockLLMClient()
     
     return DocumentSummarizer(llm_client=llm_client)
+

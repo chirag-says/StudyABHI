@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
     FileText, Download, BookOpen, Globe, Leaf, FlaskConical, Users, Landmark, Palette, Newspaper,
-    ChevronDown, ChevronRight, Home, Upload, Map, Brain, Settings, LogOut, Menu, X, Sparkles, Library,
-    Maximize2, Minimize2, ExternalLink
+    ChevronDown, ChevronRight, Home, Upload, Map, Brain, Settings, LogOut, Menu, X, Bot, Library,
+    Maximize2, Minimize2, ExternalLink, Lightbulb
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
@@ -344,7 +344,10 @@ export default function StudyMaterialsPage() {
             />
             {/* Header */}
             <div className="mb-8">
-                <h1 className="text-3xl font-bold">📚 Study Materials</h1>
+                <h1 className="text-3xl font-bold flex items-center gap-3">
+                    <Library className="w-8 h-8 text-primary" />
+                    Study Materials
+                </h1>
                 <p className="text-muted-foreground mt-1">
                     PT365 Comprehensive Study Material for UPSC Prelims
                 </p>
@@ -481,7 +484,10 @@ export default function StudyMaterialsPage() {
 
             {/* Info Card */}
             <div className="mt-6 bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-xl p-5">
-                <h3 className="font-semibold mb-2">💡 How to use these materials</h3>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <Lightbulb className="w-5 h-5 text-yellow-500" />
+                    How to use these materials
+                </h3>
                 <ul className="text-sm text-muted-foreground space-y-1">
                     <li>• PT365 materials are specifically designed for UPSC Prelims preparation</li>
                     <li>• Start with the latest year materials and work backwards for revision</li>

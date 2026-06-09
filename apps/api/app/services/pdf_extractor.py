@@ -3,8 +3,11 @@ PDF Extraction Service
 Extract clean, structured text from PDFs for RAG ingestion.
 
 Uses PyMuPDF (fitz) for robust PDF parsing.
+For image-based (scanned) PDFs, falls back to NVIDIA vision model OCR.
 """
 import re
+import base64
+import asyncio
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any, Tuple
 from pathlib import Path
@@ -44,6 +47,82 @@ class ExtractionResult:
         return len(self.chunks) > 0
 
 
+# ---------------------------------------------------------------------------
+# Vision OCR helper — sends a page image to NVIDIA vision model
+# ---------------------------------------------------------------------------
+
+async def _ocr_page_via_nvidia(page_png_bytes: bytes, page_num: int) -> str:
+    """
+    Send a page image to NVIDIA llama-3.2-11b-vision-instruct for OCR.
+    Returns the extracted text, or empty string on failure.
+    """
+    try:
+        import httpx
+        from app.core.config import settings
+
+        api_key = settings.NVIDIA_API_KEY
+        if not api_key:
+            return ""
+
+        b64 = base64.b64encode(page_png_bytes).decode("utf-8")
+        data_url = f"data:image/png;base64,{b64}"
+
+        payload = {
+            "model": "meta/llama-3.2-11b-vision-instruct",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": data_url},
+                        },
+                        {
+                            "type": "text",
+                            "text": (
+                                "You are an OCR engine. Extract ALL text from this page image exactly as it appears. "
+                                "Preserve headings, paragraphs, lists, and tables. "
+                                "Output ONLY the extracted text — no commentary, no markdown code fences."
+                            ),
+                        },
+                    ],
+                }
+            ],
+            "max_tokens": 4096,
+            "temperature": 0.0,
+        }
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                f"{settings.NVIDIA_BASE_URL}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                text = data["choices"][0]["message"]["content"]
+                logger.info(f"OCR page {page_num}: extracted {len(text)} chars via vision model")
+                return text
+            else:
+                logger.warning(f"OCR page {page_num} failed: {resp.status_code} {resp.text[:200]}")
+                return ""
+    except Exception as e:
+        logger.warning(f"OCR page {page_num} exception: {e}")
+        return ""
+
+
+def _is_image_page(text: str) -> bool:
+    """Return True if the extracted text is too short / garbled to be useful."""
+    # Strip whitespace and control characters
+    clean = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', text).strip()
+    # Less than 50 printable chars → treat as image page
+    printable = sum(1 for c in clean if c.isprintable() and not c.isspace())
+    return printable < 50
+
+
 class PDFExtractor:
     """
     Extract structured text from PDF files.
@@ -53,6 +132,7 @@ class PDFExtractor:
     - Paragraph grouping
     - Configurable chunk size for RAG
     - Metadata extraction
+    - Auto OCR for image-based (scanned) PDFs via NVIDIA vision model
     """
     
     def __init__(
@@ -61,132 +141,122 @@ class PDFExtractor:
         chunk_overlap: int = 200,     # Overlap between chunks
         min_chunk_size: int = 100,    # Minimum chunk size
         detect_headings: bool = True,
+        enable_ocr: bool = True,      # OCR fallback for image pages
     ):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.min_chunk_size = min_chunk_size
         self.detect_headings = detect_headings
+        self.enable_ocr = enable_ocr
     
     def extract_from_file(self, file_path: str) -> ExtractionResult:
         """
         Extract text from a PDF file.
-        
-        Args:
-            file_path: Path to PDF file
-            
-        Returns:
-            ExtractionResult with chunks and metadata
+        Runs the async extraction in an executor so it can be called from sync code.
         """
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    future = pool.submit(asyncio.run, self._extract_async(file_path=file_path))
+                    return future.result()
+            else:
+                return loop.run_until_complete(self._extract_async(file_path=file_path))
+        except RuntimeError:
+            return asyncio.run(self._extract_async(file_path=file_path))
+
+    def extract_from_bytes(self, pdf_bytes: bytes) -> ExtractionResult:
+        """Extract text from PDF bytes (for in-memory processing)"""
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    future = pool.submit(asyncio.run, self._extract_async(pdf_bytes=pdf_bytes))
+                    return future.result()
+            else:
+                return loop.run_until_complete(self._extract_async(pdf_bytes=pdf_bytes))
+        except RuntimeError:
+            return asyncio.run(self._extract_async(pdf_bytes=pdf_bytes))
+
+    async def _extract_async(
+        self,
+        file_path: Optional[str] = None,
+        pdf_bytes: Optional[bytes] = None,
+    ) -> ExtractionResult:
+        """Async extraction with OCR fallback for image pages."""
         try:
             import fitz  # PyMuPDF
         except ImportError:
             logger.error("PyMuPDF not installed. Install with: pip install pymupdf")
-            return ExtractionResult(
-                chunks=[],
-                page_count=0,
-                word_count=0,
-                metadata={},
-                errors=["PyMuPDF not installed"]
-            )
-        
+            return ExtractionResult(chunks=[], page_count=0, word_count=0, metadata={},
+                                    errors=["PyMuPDF not installed"])
+
         errors = []
         all_blocks = []
-        metadata = {}
-        
+
         try:
-            doc = fitz.open(file_path)
-            
-            # Extract metadata
+            if file_path:
+                doc = fitz.open(file_path)
+            else:
+                doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+
             metadata = self._extract_metadata(doc)
             page_count = len(doc)
-            
-            # Extract text blocks from each page
+
             for page_num in range(page_count):
                 try:
                     page = doc[page_num]
-                    blocks = self._extract_page_blocks(page, page_num + 1)
-                    all_blocks.extend(blocks)
+                    # Try normal text extraction first
+                    raw_text = page.get_text("text")
+
+                    if self.enable_ocr and _is_image_page(raw_text):
+                        # Image-based page → OCR via NVIDIA vision model
+                        logger.info(f"Page {page_num + 1} appears image-based, running OCR...")
+                        # Render at 150 DPI for good OCR quality without huge payloads
+                        mat = fitz.Matrix(150 / 72, 150 / 72)
+                        pix = page.get_pixmap(matrix=mat, colorspace=fitz.csRGB)
+                        png_bytes = pix.tobytes("png")
+                        ocr_text = await _ocr_page_via_nvidia(png_bytes, page_num + 1)
+
+                        if ocr_text.strip():
+                            all_blocks.append({
+                                "text": ocr_text,
+                                "type": "paragraph",
+                                "page": page_num + 1,
+                                "font_size": 12,
+                                "bbox": [],
+                            })
+                        else:
+                            logger.warning(f"OCR returned empty for page {page_num + 1}, skipping.")
+                    else:
+                        # Normal text PDF
+                        blocks = self._extract_page_blocks(page, page_num + 1)
+                        all_blocks.extend(blocks)
+
                 except Exception as e:
                     errors.append(f"Error on page {page_num + 1}: {str(e)}")
                     logger.warning(f"Error extracting page {page_num + 1}: {e}")
-            
+
             doc.close()
-            
-            # Process blocks into chunks
+
             chunks = self._create_chunks(all_blocks)
-            
-            # Calculate word count
             word_count = sum(len(chunk.content.split()) for chunk in chunks)
-            
+
             return ExtractionResult(
                 chunks=chunks,
                 page_count=page_count,
                 word_count=word_count,
                 metadata=metadata,
-                errors=errors
+                errors=errors,
             )
-            
+
         except Exception as e:
             logger.error(f"Failed to extract PDF: {e}")
-            return ExtractionResult(
-                chunks=[],
-                page_count=0,
-                word_count=0,
-                metadata={},
-                errors=[f"Extraction failed: {str(e)}"]
-            )
-    
-    def extract_from_bytes(self, pdf_bytes: bytes) -> ExtractionResult:
-        """Extract text from PDF bytes (for in-memory processing)"""
-        try:
-            import fitz
-        except ImportError:
-            return ExtractionResult(
-                chunks=[],
-                page_count=0,
-                word_count=0,
-                metadata={},
-                errors=["PyMuPDF not installed"]
-            )
-        
-        errors = []
-        all_blocks = []
-        
-        try:
-            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-            metadata = self._extract_metadata(doc)
-            page_count = len(doc)
-            
-            for page_num in range(page_count):
-                try:
-                    page = doc[page_num]
-                    blocks = self._extract_page_blocks(page, page_num + 1)
-                    all_blocks.extend(blocks)
-                except Exception as e:
-                    errors.append(f"Error on page {page_num + 1}: {str(e)}")
-            
-            doc.close()
-            
-            chunks = self._create_chunks(all_blocks)
-            word_count = sum(len(chunk.content.split()) for chunk in chunks)
-            
-            return ExtractionResult(
-                chunks=chunks,
-                page_count=page_count,
-                word_count=word_count,
-                metadata=metadata,
-                errors=errors
-            )
-            
-        except Exception as e:
-            return ExtractionResult(
-                chunks=[],
-                page_count=0,
-                word_count=0,
-                metadata={},
-                errors=[f"Extraction failed: {str(e)}"]
-            )
-    
+            return ExtractionResult(chunks=[], page_count=0, word_count=0, metadata={},
+                                    errors=[f"Extraction failed: {str(e)}"])
+
     def _extract_metadata(self, doc) -> Dict[str, Any]:
         """Extract PDF metadata"""
         try:
@@ -407,7 +477,7 @@ class PDFExtractor:
         
         # Normalize quotes
         text = text.replace('"', '"').replace('"', '"')
-        text = text.replace(''', "'").replace(''', "'")
+        text = text.replace('\u2018', "'").replace('\u2019', "'")
         
         return text.strip()
 

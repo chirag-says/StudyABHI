@@ -1,0 +1,16 @@
+{
+    "include": ["app"],
+    "pythonVersion": "3.13",
+    "pythonPlatform": "Windows",
+    "venvPath": ".",
+    "venv": "venv",
+    "extraPaths": [
+        "."
+    ],
+    "reportMissingImports": "warning",
+    "reportMissingModuleSource": "none",
+    "reportGeneralTypeIssues": "warning",
+    "reportArgumentType": "warning",
+    "reportCallIssue": "warning",
+    "typeCheckingMode": "basic"
+}

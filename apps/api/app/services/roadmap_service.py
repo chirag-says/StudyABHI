@@ -74,7 +74,7 @@ class RoadmapService:
         # Create study phases based on time available
         await self._create_study_phases(study_plan)
         
-        # Generate initial week's tasks
+        # Generate initial week's tasks (no commit — we commit once at the end)
         await self.generate_weekly_tasks(user_id, study_plan.id)
         
         await self.db.commit()
@@ -196,7 +196,8 @@ class RoadmapService:
     async def generate_daily_tasks(
         self,
         user_id: str,
-        target_date: date = None
+        target_date: date = None,
+        _commit: bool = True,
     ) -> List[DailyStudyTask]:
         """Generate study tasks for a specific day"""
         
@@ -336,7 +337,9 @@ class RoadmapService:
             tasks.append(ca_task)
             self.db.add(ca_task)
         
-        await self.db.commit()
+        await self.db.flush()
+        if _commit:
+            await self.db.commit()
         
         return tasks
     
@@ -367,7 +370,8 @@ class RoadmapService:
                 topics.append({
                     "id": prof.topic_id,
                     "name": prof.topic.name,
-                    "subject": prof.topic.subject.name if prof.topic.subject else "General Studies",
+                    # Don't access prof.topic.subject — lazy-loaded, causes greenlet crash in async
+                    "subject": "General Studies",
                     "proficiency": prof.proficiency_score
                 })
         
@@ -452,13 +456,12 @@ class RoadmapService:
         study_plan_id: str
     ):
         """Generate tasks for the entire week"""
-        
         today = date.today()
-        
-        # Generate tasks for the next 7 days
+        # Generate tasks for next 7 days — no intermediate commits
+        # (caller e.g. create_study_plan will do a single commit at the end)
         for i in range(7):
             target_date = today + timedelta(days=i)
-            await self.generate_daily_tasks(user_id, target_date)
+            await self.generate_daily_tasks(user_id, target_date, _commit=False)
     
     async def get_weekly_plan(
         self,

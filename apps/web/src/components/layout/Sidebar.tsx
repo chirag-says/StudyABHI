@@ -15,7 +15,7 @@ import {
     LogOut,
     ChevronLeft,
     Library,
-    Eye
+    MessageSquare,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { cn } from '@/lib/utils';
@@ -30,13 +30,14 @@ interface NavItem {
 
 const navItems: NavItem[] = [
     { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { href: '/chat', label: 'AI Chat', icon: <MessageSquare className="w-5 h-5" /> },
     { href: '/upload', label: 'Upload PDF', icon: <Upload className="w-5 h-5" /> },
     { href: '/materials', label: 'Study Materials', icon: <Library className="w-5 h-5" /> },
-    { href: '/study-room', label: 'Study Room', icon: <Eye className="w-5 h-5" /> },
     { href: '/roadmap', label: 'My Roadmap', icon: <Map className="w-5 h-5" /> },
     { href: '/quiz', label: 'Take Quiz', icon: <Brain className="w-5 h-5" /> },
     { href: '/settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> },
 ];
+
 
 interface SidebarProps {
     children?: React.ReactNode;

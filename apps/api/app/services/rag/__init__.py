@@ -24,6 +24,7 @@ from app.services.rag.pipeline import (
     LLMProvider,
     OllamaClient,
     HuggingFaceClient,
+    NvidiaKimiClient,
     create_rag_pipeline,
     create_complete_rag_system,
     SYSTEM_PROMPT,
@@ -53,6 +54,7 @@ __all__ = [
     "LLMProvider",
     "OllamaClient",
     "HuggingFaceClient",
+    "NvidiaKimiClient",
     "create_rag_pipeline",
     "create_complete_rag_system",
     # Prompts

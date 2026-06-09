@@ -5,7 +5,7 @@ import {
     FileText,
     Send,
     Loader2,
-    Sparkles,
+    Bot,
     ThumbsUp,
     ThumbsDown,
     MessageSquare,
@@ -93,23 +93,106 @@ export function StudyChat({
         }]);
 
         try {
-            let response;
+            // Build conversation history for context (last 6 messages, excluding system)
+            const history = messages
+                .filter(m => m.id !== 'welcome')
+                .slice(-6)
+                .map(m => ({ role: m.role, content: m.content }));
+
             if (documentId) {
-                response = await api.post<{ answer: string }>('/rag/query', {
+                // Document-specific RAG query (non-streaming)
+                const response = await api.post<{ answer: string }>('/rag/query', {
                     question: userMessage.content,
                     document_ids: [documentId]
                 });
-            } else {
-                response = await api.post<{ answer: string }>('/chat/general', {
-                    question: userMessage.content
-                });
-            }
 
-            setMessages(prev => prev.map(msg =>
-                msg.id === assistantId
-                    ? { ...msg, content: response.data.answer, isStreaming: false }
-                    : msg
-            ));
+                setMessages(prev => prev.map(msg =>
+                    msg.id === assistantId
+                        ? { ...msg, content: response.data.answer, isStreaming: false }
+                        : msg
+                ));
+            } else {
+                // General chat — use streaming for better UX
+                try {
+                    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+                    
+                    const response = await fetch(`${baseUrl}/api/v1/chat/general/stream`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                        },
+                        body: JSON.stringify({
+                            question: userMessage.content,
+                            history: history,
+                            stream: true,
+                        }),
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    const reader = response.body?.getReader();
+                    const decoder = new TextDecoder();
+                    let accumulated = '';
+
+                    if (reader) {
+                        // Show content progressively
+                        setMessages(prev => prev.map(msg =>
+                            msg.id === assistantId
+                                ? { ...msg, isStreaming: false }
+                                : msg
+                        ));
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+
+                            const chunk = decoder.decode(value, { stream: true });
+                            const lines = chunk.split('\n');
+
+                            for (const line of lines) {
+                                const trimmed = line.trim();
+                                if (!trimmed.startsWith('data: ')) continue;
+                                
+                                const dataStr = trimmed.slice(6);
+                                if (dataStr === '[DONE]') break;
+
+                                try {
+                                    const parsed = JSON.parse(dataStr);
+                                    if (parsed.content) {
+                                        accumulated += parsed.content;
+                                        const current = accumulated;
+                                        setMessages(prev => prev.map(msg =>
+                                            msg.id === assistantId
+                                                ? { ...msg, content: current }
+                                                : msg
+                                        ));
+                                    }
+                                    if (parsed.error) {
+                                        throw new Error(parsed.error);
+                                    }
+                                } catch (parseErr) {
+                                    // Skip malformed JSON chunks
+                                }
+                            }
+                        }
+                    }
+                } catch (streamErr) {
+                    // Fallback to non-streaming endpoint
+                    console.warn('Streaming failed, falling back to standard request:', streamErr);
+                    const response = await api.post<{ answer: string }>('/chat/general', {
+                        question: userMessage.content,
+                        history: history
+                    });
+
+                    setMessages(prev => prev.map(msg =>
+                        msg.id === assistantId
+                            ? { ...msg, content: response.data.answer, isStreaming: false }
+                            : msg
+                    ));
+                }
+            }
         } catch (error) {
             const errorMessage = getErrorMessage(error);
             setMessages(prev => prev.map(msg =>
@@ -163,7 +246,7 @@ export function StudyChat({
             <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/10 to-blue-500/10">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
-                        <Sparkles className="w-5 h-5 text-white" />
+                        <Bot className="w-5 h-5 text-white" />
                     </div>
                     <div>
                         <h3 className="font-semibold">AI Study Assistant</h3>
@@ -187,8 +270,8 @@ export function StudyChat({
                         className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                         <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${message.role === 'user'
-                                ? 'bg-primary text-primary-foreground rounded-br-md'
-                                : 'bg-muted rounded-bl-md'
+                            ? 'bg-primary text-primary-foreground rounded-br-md'
+                            : 'bg-muted rounded-bl-md'
                             }`}>
                             {message.isStreaming ? (
                                 <div className="flex items-center gap-2">

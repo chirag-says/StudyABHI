@@ -88,7 +88,7 @@ export function StudyTimer({ onSessionComplete, onModeChange, autoStart = false 
 
         // Browser notification
         if (Notification.permission === 'granted') {
-            new Notification('Timer Complete! 🎉', {
+            new Notification('Timer Complete!', {
                 body: mode === 'focus'
                     ? 'Great job! Time for a break.'
                     : 'Break is over. Ready to focus?',

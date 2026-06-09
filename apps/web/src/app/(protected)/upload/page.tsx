@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Clock, Trash2, ExternalLink } from 'lucide-react';
+import { FileText, Clock, Trash2, ExternalLink, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PDFDropzone } from '@/components/upload/PDFDropzone';
 import api, { getErrorMessage } from '@/services/api';
@@ -91,7 +91,7 @@ export default function UploadPage() {
 
                 {/* Tips */}
                 <section className="bg-card border rounded-xl p-6">
-                    <h2 className="font-semibold mb-3">📚 Tips for best results</h2>
+                    <h2 className="font-semibold mb-3 flex items-center gap-2"><BookOpen className="w-5 h-5 text-primary" /> Tips for best results</h2>
                     <ul className="grid md:grid-cols-2 gap-2 text-sm text-muted-foreground">
                         <li className="flex items-start gap-2">
                             <span className="text-primary">•</span>
